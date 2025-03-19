@@ -228,7 +228,7 @@ def print_round(round_num):
     print(f"Round {(round_num // 3) + 1} | Choice #{round_num}")
 
 def game():
-    print("Welcome to Dealstats.")
+    print("Welcome to Dealgame.")
     print("Type 'help' at any time for assistance.")
     boxes = make_boxes(get_money(2023))
     boxes, reserved_box = reserve_box(boxes)
