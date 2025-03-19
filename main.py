@@ -1,7 +1,7 @@
 import random
 import time
 
-DELAY = 0.5
+DELAY = 0
 
 def get_money(year: int = 2023):
     money = {
@@ -216,6 +216,7 @@ def suspense(boxes, reserved_box, final_offer):
         print("Nice!")
     time.sleep(DELAY*2)
     
+    print()
     if winnings < final_offer:
         print("This time, the Banker beat you...")
     else:
@@ -242,8 +243,9 @@ def game():
     while (len(boxes) != 1) and not deal:
         print_round(round_num)
 
+        quartiles = get_quartiles(boxes, reserved_box)
         boxes, pick = get_pick(boxes, reserved_box)
-        reveal_box(pick, get_quartiles(boxes, reserved_box))
+        reveal_box(pick, quartiles)
 
         if (round_num % 3) == 0:
             deal, last_offer = banker_offer(boxes, reserved_box, last_offer)
@@ -266,7 +268,7 @@ def game():
         print(f"You're walking away with {fmt_cash(winnings)}!")
         time.sleep(DELAY)
     
-    print("Here are all the offers the banker made you:")
+    print("\nHere are all the offers the banker made you:")
     print(all_offers)
     print()
     
