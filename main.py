@@ -1,7 +1,7 @@
 import random
 import time
 
-DELAY = 0
+DELAY = 0.5
 
 def get_money(year: int = 2023):
     money = {
@@ -71,7 +71,7 @@ def opt_val_choice(boxes, reserved_box, valid_responses, prompter):
             print("Type 'end' to end the game.")
         elif "end" in choice:
             print("You've ended the game.")
-            print(f"The Banker gives you {fmt_cash(calc_offer(boxes, reserved_box) / 4)} for your trouble.")
+            print(f"The Banker gives you {fmt_cash(calc_offer(boxes, reserved_box, random.uniform(0.1, 0.6)) / 4)} for your trouble.")
             print("Goodbye.")
             exit()
         print()
@@ -95,88 +95,195 @@ def reserve_box(boxes):
     del boxes[pick[0]]
     return boxes, pick
 
-def reveal_box(box):
-    print(f"You chose box #{box[0]}.")
+def reveal_box(picked_box, quartiles):
+    (upper_quartile, median, lower_quartile) = quartiles
+    print(f"You chose box #{picked_box[0]}.")
     time.sleep(DELAY)
     print("Let's see what's in it...")
     time.sleep(DELAY)
-    print(f"Box {box[0]}: {fmt_cash(box[1])}")
+    print(f"Box {picked_box[0]}: {fmt_cash(picked_box[1])}")
+    time.sleep(DELAY)
+    if picked_box[1] >= upper_quartile:
+        print("Ouch...")
+    elif picked_box[1] >= median:
+        print("Not the best outcome...")
+    elif picked_box[1] >= lower_quartile:
+        print("Nice one!")
+    else:
+        print("Great choice!")
     time.sleep(DELAY)
 
-def play_round(boxes, reserved_box, round_num):
-    print(f"Welcome to round {round_num}.")
-    boxes, pick = get_pick(boxes, reserved_box)
-    reveal_box(pick)
-    boxes, pick = get_pick(boxes, reserved_box)
-    reveal_box(pick)
-    return boxes
+def construct_prompt(offer, last_offer):
+    if last_offer:
+        return f"The Banker is offering you {fmt_cash(offer)} to walk away now." + \
+        f"\nThe Banker's last offer was {fmt_cash(last_offer)}." + \
+        "\nDeal or No Deal?"
+    else:
+        return f"The Banker is offering you {fmt_cash(offer)} to walk away now." + \
+        "\nDeal or No Deal?"
 
-def banker_offer(boxes, reserved_box):
+def banker_waffle(mult):
+    if mult > 1:
+        print("BANKER: 'This is a very generous offer.'")
+        time.sleep(DELAY*2)
+        print("BANKER: 'I advise you take it.")
+        time.sleep(DELAY)
+    elif mult > 0.7:
+        print("BANKER: 'I doubt you'll do much better than this.'")
+        time.sleep(DELAY*2)
+    else:
+        print("BANKER: 'With the skill you've displayed, this is all I can do.'")
+        time.sleep(DELAY*2)
+        print("BANKER: 'I strongly advise you to take this offer.")
+        time.sleep(DELAY)
+
+def banker_offer(boxes, reserved_box, last_offer):
+    print()
     print("The phone is ringing...")
-    time.sleep(DELAY)
+    time.sleep(DELAY*2)
     print("The Banker wants to make you an offer.")
-    offer = calc_offer(boxes, reserved_box)
-    time.sleep(DELAY)
+    time.sleep(DELAY*2)
+    mult = random.uniform(0.4, 1.2)
+    banker_waffle(mult)
+    offer = calc_offer(boxes, reserved_box, mult)
+    time.sleep(DELAY*2)
+    prompt = construct_prompt(offer, last_offer)
+
     while True:
         choice = opt_val_choice(
             boxes,
             reserved_box,
             ("deal", "yes", "true", "no deal", "no", "false"), 
-            f"The Banker is offering you {fmt_cash(offer)} to walk away now." +
-            "\nDeal or No Deal?"
+            prompt
             )
         if choice in ("deal", "yes", "true"):
             return True, offer
         elif choice in ("no deal", "no", "false"):
-            return False, 0
+            return False, offer
             
-def calc_offer(boxes, reserved_box):
-    return round(
-        ((sum(boxes.values()) + reserved_box[0]) / len(boxes))
-        * random.uniform(0.5, 1.1), 2)
+def calc_average(boxes, reserved_box):
+    return (sum(boxes.values()) + reserved_box[0]) / len(boxes)
 
-def main():
+def calc_offer(boxes, reserved_box, mult):
+    return round(calc_average(boxes, reserved_box) * mult, 2)
+
+def get_quartiles(boxes, reserved_box):
+    vals = list(boxes.values())
+    vals.append(reserved_box[1])
+    vals.sort()
+    n = len(vals)
+    # special case if only 2 boxes left
+    if len(boxes) == 2:
+        return(
+            vals[2],
+            vals[1],
+            vals[1]
+        )
+    return (
+        vals[round((n//2 * 1.5))],
+        vals[round((n//2 * 1.0))],
+        vals[round((n//2 * 0.5))]
+)
+
+def suspense(boxes, reserved_box, final_offer):
+    winnings = reserved_box[1]
+    (final_num, final_val) = list(boxes.items())[0]
+    two_vals = [winnings, final_val]
+    random.shuffle(two_vals)
+    
+    print("You have played all the way to the end of the game.")
+    time.sleep(DELAY)
+    print("Two boxes remain. Yours and the final box to choose.")
+    time.sleep(DELAY)
+    print("\nThese two boxes contain the final two values:")
+    time.sleep(DELAY)
+    print(f"{fmt_cash(two_vals[0])}...")
+    time.sleep(DELAY)
+    print(f"and {fmt_cash(two_vals[1])}.")
+    time.sleep(DELAY)
+    print(f"\nThe Banker's final offer to you was {fmt_cash(final_offer)}...")
+    time.sleep(DELAY*2)
+    print(f"\nThe value in the final box - box {final_num} is...")
+    time.sleep(DELAY*3)
+    print(f"{fmt_cash(final_val)}!")
+    time.sleep(DELAY*3)
+    print(f"The value in your box is {fmt_cash(winnings)}!")
+    time.sleep(DELAY*3)
+    
+    if final_val > winnings:
+        print("Oh no!")
+    else:
+        print("Nice!")
+    time.sleep(DELAY*2)
+    
+    if winnings < final_offer:
+        print("This time, the Banker beat you...")
+    else:
+        print("Congratulations! You have beaten the Banker!")
+    time.sleep(DELAY*3)
+
+def print_round(round_num):
+    print()
+    print(f"Round {(round_num // 3) + 1} | Choice #{round_num}")
+
+def game():
     print("Welcome to Dealstats.")
     print("Type 'help' at any time for assistance.")
     boxes = make_boxes(get_money(2023))
     boxes, reserved_box = reserve_box(boxes)
     print(f"Your reserved box is #{reserved_box[0]}.")
+
     deal = False
     round_num = 1
-    value = 0
+    last_offer = 0
+    winnings = 0
+    all_offers = []
+
     while (len(boxes) != 1) and not deal:
-        print()
-        print(f"Round {(round_num // 3) + 1} | Choice #{round_num}")
+        print_round(round_num)
+
         boxes, pick = get_pick(boxes, reserved_box)
-        reveal_box(pick)
+        reveal_box(pick, get_quartiles(boxes, reserved_box))
+
         if (round_num % 3) == 0:
-            deal, value = banker_offer(boxes, reserved_box)
+            deal, last_offer = banker_offer(boxes, reserved_box, last_offer)
+            all_offers.append(last_offer)
             if deal:
                 print("Congratulations! You took the Banker's offer.")
-                time.sleep(DELAY)
+                winnings = last_offer
                 break
             else:
                 print("No deal! Play on!")
                 time.sleep(DELAY)
+
         round_num += 1
 
     if not deal:
-        value = reserved_box[1]
-        print("Two boxes remain. Yours and the final box to choose.")
+        winnings = reserved_box[1]
+        suspense(boxes, reserved_box, last_offer)
+    else:
         time.sleep(DELAY)
-        print("You have played all the way to the end of the game.")
+        print(f"You're walking away with {fmt_cash(winnings)}!")
         time.sleep(DELAY)
-        print("The value in the final box is...")
-        time.sleep(DELAY)
-        (final_num, final_val) = boxes.items()
-        print(f"#{final_num}: {fmt_cash(final_val)}!")
-        time.sleep(DELAY)
-        print(f"The value in your box is {fmt_cash(value)}!")
-
-    print(f"You're walking away with {fmt_cash(value)}!")
-    print("Please play again!")
-        
     
+    print("Here are all the offers the banker made you:")
+    print(all_offers)
+    print()
+    
+def main():
+    choice = True
+    while choice:
+        game()
+        while True:
+            print()
+            print("Would you like to play again? ")
+            choice = input("... ").lower()
+            if choice in ("yes"):
+                print()
+                break
+            if choice in ("no"):
+                print("Thank you for playing!")
+                exit()
 
 if __name__ == "__main__":
     main()
