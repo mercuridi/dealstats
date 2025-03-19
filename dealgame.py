@@ -269,7 +269,7 @@ def game():
         time.sleep(DELAY)
     
     print("\nHere are all the offers the banker made you:")
-    print(all_offers)
+    print([fmt_cash(offer) for offer in all_offers])
     print()
     
 def main():
